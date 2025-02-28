@@ -1,0 +1,8 @@
+"0","# Find population range in 2021"
+"0","population_range <- range(population_data$POPESTIMATE2021, na.rm = TRUE)"
+"0","population_range"
+"1","[1]"
+"1","      54"
+"1"," 9809462"
+"1","
+"

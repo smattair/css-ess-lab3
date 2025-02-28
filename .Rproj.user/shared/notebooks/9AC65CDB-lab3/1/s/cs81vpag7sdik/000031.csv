@@ -1,0 +1,6 @@
+"0",""
+"0","# Print the number of counties that meet the watch list condition"
+"0","cat(""Number of counties meeting the watch list condition:"", watch_list_count)"
+"1","Number of counties meeting the watch list condition:"
+"1"," "
+"1","53"

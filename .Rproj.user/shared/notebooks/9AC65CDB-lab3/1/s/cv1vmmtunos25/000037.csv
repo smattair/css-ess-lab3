@@ -1,0 +1,19 @@
+"0","glimpse(data)   # Quick look at the structure"
+"1","Rows: 2,502,832"
+"1",""
+"1","
+"
+"1","Columns: 6"
+"1",""
+"1","
+"
+"1","$ date   [3m[38;5;246m<date>[39m[23m 2020-01-21, 2020-01-22, 2020-01-23, 2020-01-…
+$ county [3m[38;5;246m<chr>[39m[23m ""Snohomish"", ""Snohomish"", ""Snohomish"", ""Cook""…
+$ state  [3m[38;5;246m<chr>[39m[23m ""Washington"", ""Washington"", ""Washington"", ""Il…
+$ fips   [3m[38;5;246m<chr>[39m[23m ""53061"", ""53061"", ""53061"", ""17031"", ""53061"", …
+$ cases  [3m[38;5;246m<dbl>[39m[23m 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, …
+$ deaths [3m[38;5;246m<dbl>[39m[23m 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, …"
+"1",""
+"1","
+"
+"0","head(data)      # View the first few rows"
