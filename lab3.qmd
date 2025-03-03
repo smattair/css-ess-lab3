@@ -14,7 +14,7 @@ format: html
 
 This easy access can help us view changes between historical and current climate trends. It can help us look back to see where we went wrong and where we went right. We can also use previous data to help predict future issues or trends.
 
--   What happens when this data disappears or becomes inaccessible? 
+-   What happens when this data disappears or becomes inaccessible?
 
 Losing this data could cause us to be unaware of what has already happened and make it extremely difficult to recognize trends and predict future climate and resource conflicts.
 
