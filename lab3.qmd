@@ -1,11 +1,13 @@
 ---
 ---
 title: "Lab 3: COVID-19"
-subtitle: 'Ecosystem Science and Sustainability 330'
+subtitle: "Ecosystem Science and Sustainability 330"
 author:
-  - name: "Sierra Mattair"
-    email: "smattair@colostate.edu"
-format: html
+ - name: "Sierra Mattair"
+   email: "smattair@colostate.edu"
+format:
+ html:
+  self-contained: true
 ---
 
 # Question 1: Public Data
@@ -411,40 +413,53 @@ library(tidyverse)
 library(lubridate)
 library(ggplot2)
 library(readr)
+library(maps)
 
-# Read in county centroid data and merge with COVID-19 data
+# Read in county centroid data
 county_centroids <- read_csv("https://raw.githubusercontent.com/mikejohnson51/csu-ess-330/refs/heads/main/resources/county-centroids.csv")
 
-# Ensure the column names match for merging
-county_centroids <- county_centroids %>%
-  rename(fips = fips)  # Ensure consistent column name
+# Read in COVID data
+covid_data <- read_csv("data/covid_data.csv")
 
-# Merge with COVID-19 data
+# Verify data loaded correctly
+if (nrow(covid_data) == 0) {
+  stop("Error: The COVID data file is empty. Check your data source.")
+}
+
+# Ensure FIPS codes are character strings for proper merging
 covid_data <- covid_data %>%
-  left_join(county_centroids, by = "fips") %>%
-  select(date, county, state, fips, cases, deaths, LON.x, LAT.x) %>%  
-  rename(
-    LON = LON.x,
-    LAT = LAT.x
-  )
+  mutate(fips = as.character(fips))
 
-colnames(covid_data)  # Verify the column names
+county_centroids <- county_centroids %>%
+  mutate(fips = as.character(fips))
+
+# Merge COVID-19 data with county centroids
+covid_data <- covid_data %>%
+  filter(!is.na(fips)) %>%
+  left_join(county_centroids, by = "fips") %>%
+  select(date, county, state, fips, cases, deaths, LON, LAT)
+
+# Check column names to confirm
+print(colnames(covid_data))
 
 # Compute the Weighted Mean Center for Each Date
 weighted_mean_center <- covid_data %>%
+  filter(!is.na(LON) & !is.na(LAT) & !is.na(cases)) %>%
   group_by(date) %>%
   summarize(
     LON_WMC = sum(LON * cases, na.rm = TRUE) / sum(cases, na.rm = TRUE),
     LAT_WMC = sum(LAT * cases, na.rm = TRUE) / sum(cases, na.rm = TRUE),
     total_cases = sum(cases, na.rm = TRUE)
   ) %>%
-  mutate(month = format(date, "%m"))
+  mutate(month = format(date, "%m")) %>%
+  mutate(month = factor(month, levels = sprintf("%02d", 1:12)))  # Convert month to factor
 
 # Plot the Movement of the Weighted Mean Center
 ggplot(weighted_mean_center, aes(x = LON_WMC, y = LAT_WMC, color = month, size = total_cases)) +
   borders("state", fill = "gray90", colour = "white") +
   geom_point(alpha = 0.8) +
   scale_size_continuous(range = c(2, 10)) +
+  scale_color_viridis_d() +  # Using a color scale that works well for months
   labs(
     title = "Weighted Mean Center of COVID-19 Cases in the USA",
     subtitle = "Tracking the spread of the outbreak over time",
@@ -469,9 +484,23 @@ library(lubridate)
 library(readr)
 library(ggplot2)
 library(patchwork)
+library(maps)  # Ensure this is loaded for `map_data("state")`
 
 # Read COVID data (update path if needed)
-covid_data <- read_csv("data/covid_data.csv")
+covid_data_path <- "data/covid_data.csv"
+
+if (!file.exists(covid_data_path)) {
+  stop("Error: The COVID data file was not found at the specified path.")
+}
+
+covid_data <- read_csv(covid_data_path)
+
+# Verify it loaded correctly
+if (nrow(covid_data) == 0) {
+  stop("Error: The COVID data file is missing or empty.")
+} else {
+  print("COVID data successfully loaded!")
+}
 
 # Read county centroids data from provided URL
 county_centroids <- read_csv("https://raw.githubusercontent.com/mikejohnson51/csu-ess-330/refs/heads/main/resources/county-centroids.csv")
@@ -483,15 +512,20 @@ county_centroids <- county_centroids %>% rename(fips = fips)
 covid_data <- covid_data %>%
   left_join(county_centroids, by = "fips")
 
+# Ensure cases and deaths columns exist and have no NAs
+covid_data <- covid_data %>%
+  filter(!is.na(cases) & !is.na(deaths))
+
 # Function to compute weighted mean center
 compute_weighted_center <- function(data, weight_col) {
   data %>%
     group_by(date) %>%
+    filter(!is.na(.data[[weight_col]])) %>%  # Ensure no NAs in the weighted column
     summarize(
       Weighted_LON = sum(LON * .data[[weight_col]], na.rm = TRUE) / sum(.data[[weight_col]], na.rm = TRUE),
       Weighted_LAT = sum(LAT * .data[[weight_col]], na.rm = TRUE) / sum(.data[[weight_col]], na.rm = TRUE),
       total_weight = sum(.data[[weight_col]], na.rm = TRUE),
-      month = format(first(date), "%m")  # Extract month
+      month = unique(month(date))  # Extract month properly
     )
 }
 
@@ -499,29 +533,30 @@ compute_weighted_center <- function(data, weight_col) {
 weighted_cases <- compute_weighted_center(covid_data, "cases")
 weighted_deaths <- compute_weighted_center(covid_data, "deaths")
 
-# Base map of USA states
-usa_map <- borders("state", fill = "gray90", colour = "white")
+# Base USA map
+usa_map <- map_data("state")
 
 # Plot for COVID Cases
 p1 <- ggplot() +
-  usa_map +
-  geom_point(data = weighted_cases, aes(x = Weighted_LON, y = Weighted_LAT, size = total_weight, color = "Cases"), alpha = 0.7) +
+  geom_polygon(data = usa_map, aes(long, lat, group = group), fill = "gray90", color = "white") +
+  geom_point(data = weighted_cases, aes(x = Weighted_LON, y = Weighted_LAT, size = total_weight), 
+             color = "red", alpha = 0.7) +
   scale_size_continuous(range = c(2, 10)) +
-  labs(title = "Weighted Mean Center of COVID Cases", x = "Longitude", y = "Latitude", color = "Metric") +
+  labs(title = "Weighted Mean Center of COVID Cases", x = "Longitude", y = "Latitude") +
   theme_minimal() +
-  theme(legend.position = "bottom") +
-  scale_color_manual(values = "red")
+  theme(legend.position = "bottom")
 
 # Plot for COVID Deaths
 p2 <- ggplot() +
-  usa_map +
-  geom_point(data = weighted_deaths, aes(x = Weighted_LON, y = Weighted_LAT, size = total_weight, color = "Deaths"), alpha = 0.7) +
+  geom_polygon(data = usa_map, aes(long, lat, group = group), fill = "gray90", color = "white") +
+  geom_point(data = weighted_deaths, aes(x = Weighted_LON, y = Weighted_LAT, size = total_weight), 
+             color = "navy", alpha = 0.7) +
   scale_size_continuous(range = c(2, 10)) +
-  labs(title = "Weighted Mean Center of COVID Deaths", x = "Longitude", y = "Latitude", color = "Metric") +
+  labs(title = "Weighted Mean Center of COVID Deaths", x = "Longitude", y = "Latitude") +
   theme_minimal() +
-  theme(legend.position = "bottom") +
-  scale_color_manual(values = "navy")
+  theme(legend.position = "bottom")
 
 # Combine plots side by side using patchwork
 p1 + p2
+
 ```
